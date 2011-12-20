@@ -1,0 +1,19 @@
+input:
+  login: string
+  password: password
+output:
+  balance: currency
+algorithm:
+  -
+    command: http_get
+    url: 'https://login.skype.com/account/login-form?return_url=https://secure.skype.com/account/login'
+  -
+    command: http_post
+    post_data: 'username=#{login}&password=#{password}'
+    url: 'https://login.skype.com/account/login-form'
+  -
+    command: grab
+# <span id="balanceAmount"><span class='ccy'>&#36;</span>12.34</span>
+    regexp: '<span id="balanceAmount">.*>([0-9.]*)<'
+    output:
+      1: balance

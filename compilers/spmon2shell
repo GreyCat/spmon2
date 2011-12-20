@@ -1,0 +1,45 @@
+#!/usr/bin/env ruby
+
+require 'compiler-common'
+
+class ShellCompiler < SPMonCompiler
+  def run
+    # Header
+    @out.puts <<__EOF__
+#!/bin/sh
+
+OLDPATH=$PATH; PATH=".:..:$(dirname $0):$PATH"; . _spmon_lib; PATH=$OLDPATH
+
+__EOF__
+
+    # Algorithm
+    @in['algorithm'].each_with_index { |step, i|
+      #p step
+      case step['command']
+      when 'http_get', 'http_post'
+        line = "request -O \"$TM/#{i}.html\""
+        line << " \"--post-data=#{quote_for_double(step['post_data'])}\"" if step['post_data']
+        line << " \"#{quote_for_double(step['url'])}\""
+        @out.puts line
+      when 'grab'
+        raise 'Unable to output more than 1 value in shell script' if step['output'].length > 1
+        @out.puts "grab '#{quote_for_single(step['regexp'])}' #{step['output'].keys.first} <\"$TM/#{i - 1}.html\""
+      end
+    }
+  end
+
+  def quote_for_single(str)
+    str.gsub(/'/, "\'")
+  end
+
+  def quote_for_double(str)
+    res = str.dup
+    res.gsub!(/\\/, '\\')
+    res.gsub!(/"/, '\"')
+    res.gsub!(/\$/, '\$')
+    res.gsub!(/#\{([A-Za-z0-9_]+)\}/) { |x| '$' + $1.upcase }
+    res
+  end
+end
+
+ShellCompiler.new.run
