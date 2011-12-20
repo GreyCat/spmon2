@@ -5,12 +5,17 @@ require 'compiler-common'
 class ShellCompiler < SPMonCompiler
   def run
     # Header
-    @out.puts <<__EOF__
-#!/bin/sh
+    @out.puts '#!/bin/sh'
+    @out.puts
 
-OLDPATH=$PATH; PATH=".:..:$(dirname $0):$PATH"; . _spmon_lib; PATH=$OLDPATH
+    # Link or include runtime library
+    if @dynamic
+      @out.puts 'OLDPATH=$PATH; PATH=".:..:$(dirname $0):$PATH"; . _spmon_lib; PATH=$OLDPATH'
+    else
+      @out.write File.open('../lib/shell/_spmon_lib').read
+    end
 
-__EOF__
+    @out.puts
 
     # Algorithm
     @in['algorithm'].each_with_index { |step, i|
