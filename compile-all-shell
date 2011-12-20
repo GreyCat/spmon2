@@ -1,0 +1,12 @@
+#!/bin/sh
+
+TARGET_DIR=shell
+
+rm -rf $TARGET_DIR
+mkdir -p $TARGET_DIR
+cd compilers
+for I in ../services/*.yaml; do
+	S=$(basename $I | sed 's/\.yaml$//')
+	./spmon2shell -s $I -o "../$TARGET_DIR/$S"
+	chmod a+x "../$TARGET_DIR/$S"
+done
