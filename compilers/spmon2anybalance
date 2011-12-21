@@ -1,0 +1,92 @@
+#!/usr/bin/env ruby
+
+require 'compiler-common'
+require 'tmpdir'
+
+class AnyBalanceCompiler < SPMonCompiler
+  def run
+    Dir.mktmpdir { |tmp|
+      File.open("#{tmp}/anybalance-manifest.xml", 'w') { |f|
+        f.write <<__EOF__
+<?xml version="1.0" encoding="utf-8"?>
+<provider>
+  <id version="1">hello-world</id>
+  <name>Hello world</name>
+  <description>SPMon-generated plugin</description>
+  <author>SPMon team</author>
+  <files>
+    <js>main.js</js>
+    <js>preferences.xml</js>
+  </files>
+  <counters>
+__EOF__
+
+	@in['output'].each_pair { |k, v|
+	  f.puts "    <counter name=\"#{k}\" id=\"#{k}\" type=\"numeric\"/>"
+	}
+
+	f.write <<__EOF__
+  </counters>
+</provider>
+__EOF__
+      }
+
+      File.open("#{tmp}/preferences.xml", 'w') { |f|
+	f.puts <<__EOF__
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen>
+__EOF__
+
+	@in['input'].each_pair { |k, v|
+	  f.puts "<EditTextPreference key=\"#{k}\" title=\"#{k}\"/>"
+	}
+
+	f.puts '</PreferenceScreen>'
+      }
+
+      File.open("#{tmp}/main.js", 'w') { |f|
+	f.puts <<__EOF__
+function main {
+  var prefs = AnyBalance.getPreferences();
+  var res = {};
+__EOF__
+
+	@in['algorithm'].each_with_index { |step, i|
+	  case step['command']
+	  when 'http_get'
+	    f.puts "var t#{i} = AnyBalance.requestGet(#{quote(step['url'])});"
+	  when 'http_post'
+	    f.puts "var data = {};"
+	    step['post_data'].split(/&/).each { |pair|
+	      k, v = pair.split(/=/)
+	      f.puts "data[#{quote(k)}] = #{quote(v)};"
+	    }
+	    f.puts "var t#{i} = AnyBalance.requestPost(#{quote(step['url'])}, {"
+            f.puts "});"
+	  end
+	}
+
+	f.puts '}'
+      }
+
+      # Archive everything up
+      msg = `cd #{tmp} && zip tmp.zip anybalance-manifest.xml main.js preferences.xml`
+      if $?.exitstatus != 0
+	$stderr.puts msg
+	exit 1
+      end
+      @out.write(File.open("#{tmp}/tmp.zip").read)
+    }
+  end
+
+  def quote(str)
+    # FIXME: add interpolation and escaping
+    str.gsub!(/#\{(.*?)\}/) {
+      "' + prefs.#{$1} + '"
+    }
+    str = "'#{str}'"
+  end
+	       
+end
+
+AnyBalanceCompiler.new.run
