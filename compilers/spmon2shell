@@ -28,7 +28,7 @@ class ShellCompiler < SPMonCompiler
         @out.puts line
       when 'grab'
         raise 'Unable to output more than 1 value in shell script' if step['output'].length > 1
-        @out.puts "grab '#{quote_for_single(step['regexp'])}' #{step['output'].keys.first} <\"$TM/#{i - 1}.html\""
+        @out.puts "grab '#{quote_for_single(quote_slashes(step['regexp']))}' #{step['output'].keys.first} <\"$TM/#{i - 1}.html\""
       end
     }
   end
@@ -44,6 +44,10 @@ class ShellCompiler < SPMonCompiler
     res.gsub!(/\$/, '\$')
     res.gsub!(/#\{([A-Za-z0-9_]+)\}/) { |x| '$' + $1.upcase }
     res
+  end
+
+  def quote_slashes(str)
+    str.gsub(/\//, '\/')
   end
 end
 
