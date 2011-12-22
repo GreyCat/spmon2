@@ -4,6 +4,7 @@ input:
 output:
   balance: currency
 algorithm:
+# А для чего этот первый запрос? Он же ничего не делает.
   -
     command: http_get
     url: 'https://login.skype.com/account/login-form?return_url=https://secure.skype.com/account/login'
