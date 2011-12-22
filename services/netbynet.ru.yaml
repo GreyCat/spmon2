@@ -1,0 +1,18 @@
+input:
+  login: string
+  password: password
+output:
+  daysleft: int32
+algorithm:
+  -
+    command: http_get
+    url: http://stat.netbynet.ru/
+  -
+    command: http_post
+    post_data: login=#{login}&password=#{password}
+    url: http://stat.netbynet.ru/main
+  -
+    command: grab
+    regexp: 'Осталось: <b>(\d+)</b> д'
+    output:
+      1: daysleft
